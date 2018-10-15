@@ -10,10 +10,13 @@ import MultiNEAT as NEAT
 #################################################
 global_best = -99999999
 dataset = pd.read_csv(sys.argv[1], thousands=',')
-vars = dataset[dataset.columns[0:17]]
-target = dataset[dataset.columns[18]]
-rrse_list = [-9999999] * 14
-mae_list = [-9999999] * 14
+rows = dataset.shape[0]
+cols = dataset.shape[1]
+print("Rows: ", rows, "Columns: ", cols)
+vars = dataset[dataset.columns[0:(cols-2)]]
+target = dataset[dataset.columns[(cols-1)]]
+rrse_list = [-9999999] * rows
+mae_list = [-9999999] * rows
 generations = 0
 
 #################################################
@@ -82,6 +85,8 @@ def evaluate(genome, skip_idx):
     global target
     global rrse_list
     global mae_list
+    global rows
+    global cols
 
     net = NEAT.NeuralNetwork()
     genome.BuildPhenotype(net)
@@ -91,7 +96,7 @@ def evaluate(genome, skip_idx):
 
     avgOutput = target.drop(target.index[skip_idx]).reset_index(drop=True).mean()
 
-    for idx in range(14):
+    for idx in range(rows):
         if idx == skip_idx:
             continue
         # print("Using row: ", idx)
@@ -108,7 +113,7 @@ def evaluate(genome, skip_idx):
         denominator += (target.iat[idx] - avgOutput) ** 2
         # print("Error: ", error)
 
-    mae = -(mae / 13.0)
+    mae = -(mae / (rows - 1.0))
     rrse = -np.sqrt(error / denominator) * 100
     if rrse > global_best:
         # plt.imshow(Draw(net), interpolation='nearest')
@@ -138,16 +143,18 @@ def evolve():
     global global_best
     global rrse_list
     global mae_list
+    global rows
+    global cols
 
     # print("LOO Validation:")
-    g = NEAT.Genome(0, 13, 0, 1, False, NEAT.ActivationFunction.LINEAR, NEAT.ActivationFunction.LINEAR, 0, params, 0)
-    for test_idx in range(14):
+    g = NEAT.Genome(0, cols, 0, 1, False, NEAT.ActivationFunction.LINEAR, NEAT.ActivationFunction.LINEAR, 0, params, 0)
+    for test_idx in range(rows):
         pop = NEAT.Population(g, params, True, 1.0, 0)
         pop.RNG.Seed(int(time.clock() * 100))
         generations = 0
         global_best = -99999999
         no_improvement = 0
-        while generations < 50:
+        while generations < 10:
             # if (generations > 20 and global_best < -100):
             #     pop = NEAT.Population(g, params, True, 1.0, 0)
             #     pop.RNG.Seed(int(time.clock() * 100))
@@ -183,7 +190,7 @@ def evolve():
 
 avg_score = 0
 avg_mae = 0
-nruns = 1
+nruns = 2
 for run in range(nruns):
     score = evolve()
     avg_score += score[0]
