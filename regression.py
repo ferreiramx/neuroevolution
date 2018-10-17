@@ -21,34 +21,34 @@ generations = 0
 #################################################
 
 params = NEAT.Parameters()
-params.PopulationSize = 100
+params.PopulationSize = 70
 params.DynamicCompatibility = True
 params.NormalizeGenomeSize = True
 params.WeightDiffCoeff = 0
 params.CompatTreshold = 2.0
-params.YoungAgeTreshold = 15
+params.YoungAgeTreshold = 5
 params.SpeciesMaxStagnation = 15
-params.OldAgeTreshold = 35
+params.OldAgeTreshold = 15
 params.MinSpecies = 1
-params.MaxSpecies = 75
+params.MaxSpecies = 25
 params.RouletteWheelSelection = False
-params.RecurrentProb = 0.1
+params.RecurrentProb = 0.2
 params.OverallMutationRate = 0.3
 
 params.ArchiveEnforcement = False
 
-params.MutateWeightsProb = 0.25
+params.MutateWeightsProb = 0.35
 
 params.WeightMutationMaxPower = 1.0
 params.WeightReplacementMaxPower = 1.0
 params.MutateWeightsSevereProb = 0.35
 params.WeightMutationRate = 0.25
-params.WeightReplacementRate = 0.9
+params.WeightReplacementRate = 0.5
 
 params.MaxWeight = 50000.0
 
 params.MutateAddNeuronProb = 0.6
-params.MutateAddLinkProb = 0.3
+params.MutateAddLinkProb = 0.4
 params.MutateRemLinkProb = 0.1
 params.MutateRemSimpleNeuronProb = 0.1
 
@@ -73,6 +73,7 @@ params.MutateLinkTraitsProb = 0.4
 params.AllowLoops = True
 params.AllowClones = True
 
+params.DontUseBiasNeuron = True
 
 #################################################
 
@@ -101,7 +102,8 @@ def evaluate(genome, skip_idx):
         # print("Using row: ", idx)
         net.Flush()
         row = np.array(vars.loc[idx])
-        inputs = np.concatenate((row, np.array([1.0])))
+        #inputs = np.concatenate((row, np.array([1.0])))
+        inputs = row
         # print("Inputs: ", inputs)
         net.Input(inputs)
         net.Activate()
@@ -118,7 +120,8 @@ def evaluate(genome, skip_idx):
         # plt.imshow(Draw(net), interpolation='nearest')
         # plt.show()
         net.Flush()
-        inputs = np.concatenate((np.array(vars.loc[skip_idx]), np.array([1.0])))
+        #inputs = np.concatenate((np.array(vars.loc[skip_idx]), np.array([1.0])))
+        inputs = np.array(vars.loc[skip_idx])
         net.Input(inputs)
         net.Activate()
         output = net.Output()
@@ -146,7 +149,7 @@ def evolve():
     global cols
 
     # print("LOO Validation:")
-    g = NEAT.Genome(0, cols, (cols-1), 1, False, NEAT.ActivationFunction.RELU, NEAT.ActivationFunction.LINEAR, 1, params, 1)
+    g = NEAT.Genome(0, (cols-1), (3), 1, False, NEAT.ActivationFunction.LINEAR, NEAT.ActivationFunction.LINEAR, 1, params, 1)
     for test_idx in range(rows):
         pop = NEAT.Population(g, params, True, 1.0, 0)
         pop.RNG.Seed(int(time.clock() * 100))
@@ -154,9 +157,9 @@ def evolve():
         global_best = -99999999
         no_improvement = 0
         # Run for a maximum of N generations
-        while generations < 50: #TODO: make max gens into variable and set via command line
+        while no_improvement < 7 and generations < 100: #TODO: make max gens into variable and set via command line
              # Reset the population if this path does not seem promising
-            if (generations > 10 and global_best < -200):
+            if (generations > 7 and global_best < -150):
                  pop = NEAT.Population(g, params, True, 1.0, 0)
                  pop.RNG.Seed(int(time.clock() * 100))
                  generations = 0
